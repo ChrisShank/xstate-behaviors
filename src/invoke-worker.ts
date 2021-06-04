@@ -18,7 +18,6 @@ export function invokeWebWorker<TEvent extends EventObject = AnyEventObject>(
 	return () => (sendBack, receive) => {
 		const handler = (event: MessageEvent<TEvent>) => {
 			try {
-				console.log('parent receive', event.data);
 				// Will error out if the data is not a valid event
 				getEventType(event.data);
 				sendBack(event.data);
@@ -27,7 +26,6 @@ export function invokeWebWorker<TEvent extends EventObject = AnyEventObject>(
 		worker.addEventListener('message', handler);
 
 		receive((event) => {
-			console.log('parent send', event);
 			worker.postMessage(event);
 		});
 
@@ -54,15 +52,13 @@ export function interpretInWorker<
 		deferEvents: true,
 		parent: {
 			send: (event, payload) => {
-				console.log('child send', event, payload);
-				_self.postMessage({ type: event, ...payload });
+				_self.postMessage(event);
 			},
 		} as AnyInterpreter, // should probably be a different type
 	});
 
 	_self.addEventListener('message', (event) => {
 		try {
-			console.log('child receive', event.data);
 			// Will error out if the data is not a valid event
 			getEventType(event.data);
 			service.send(event.data);
