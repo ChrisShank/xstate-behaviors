@@ -1,20 +1,12 @@
-import { createMachine, interpret, send, sendParent } from 'xstate';
-// import ChildWorker from './worker?worker';
-
-const pongMachine = createMachine({
-	id: 'pong',
-	on: {
-		PING: {
-			actions: [sendParent('PONG', { delay: 1000 }), () => console.log('PING')],
-		},
-	},
-});
+import { createMachine, interpret, send } from 'xstate';
+import { invokeWebWorker } from './invoke-worker';
+import ChildWorker from './worker?worker';
 
 const pingMachine = createMachine({
 	id: 'ping',
 	invoke: {
 		id: 'pong',
-		src: pongMachine,
+		src: invokeWebWorker(new ChildWorker()),
 	},
 	entry: send({ type: 'PING' }, { to: 'pong' }),
 	on: {
