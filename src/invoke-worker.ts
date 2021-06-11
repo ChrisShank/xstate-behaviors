@@ -13,9 +13,10 @@ import {
 import { getEventType } from 'xstate/lib/utils';
 
 export function invokeWebWorker<TEvent extends EventObject = AnyEventObject>(
-	worker: Worker
+	url: string
 ): () => InvokeCallback<TEvent> {
 	return () => (sendBack, receive) => {
+		const worker = new Worker(new URL(url, import.meta.url), { type: 'module' });
 		const handler = (event: MessageEvent<TEvent>) => {
 			try {
 				// Will error out if the data is not a valid event
