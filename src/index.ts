@@ -10,3 +10,4 @@ export { fromAudioWorklet } from './workers/from-audio-worklet';
 // Realtime
 export { fromWebSocket } from './real-time/from-web-socket';
 export { fromWebRTC } from './real-time/from-webrtc';
+export { fromEventSource } from './real-time/from-event-source';
