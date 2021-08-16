@@ -1,5 +1,7 @@
-import { createMachine, interpret, send } from 'xstate';
+import { createMachine, interpret, send, actions } from 'xstate';
 import { fromWebWorker } from '../../src';
+
+const { log } = actions;
 
 const pingMachine = createMachine({
   id: 'ping',
@@ -13,7 +15,7 @@ const pingMachine = createMachine({
     active: {
       on: {
         PONG: {
-          actions: [send({ type: 'PING' }, { to: 'pong', delay: 1000 }), () => console.log('PONG')],
+          actions: [log('PONG'), send({ type: 'PING' }, { to: 'pong', delay: 1000 })],
         },
         STOP: 'complete',
       },

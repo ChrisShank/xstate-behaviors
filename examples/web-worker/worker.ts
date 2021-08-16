@@ -1,11 +1,13 @@
-import { createMachine, sendParent } from 'xstate';
+import { createMachine, sendParent, actions } from 'xstate';
 import { interpretInWebWorker } from '../../src/workers/from-web-worker';
+
+const { log } = actions;
 
 const pongMachine = createMachine({
   id: 'pong',
   on: {
     PING: {
-      actions: [sendParent('PONG', { delay: 1000 }), () => console.log('PING')],
+      actions: [log('PING'), sendParent('PONG', { delay: 1000 })],
     },
   },
 });

@@ -52,8 +52,8 @@ export function interpretInWebWorker<
     ...options,
     deferEvents: true,
     parent: {
-      send: (event, payload) => {
-        _self.postMessage({ type: event, payload });
+      send: (event) => {
+        _self.postMessage(event);
       },
     } as AnyInterpreter, // should probably be a different type
   });
