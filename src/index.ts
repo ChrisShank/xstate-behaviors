@@ -14,3 +14,4 @@ export { fromEventSource } from './real-time/from-event-source';
 
 // Misc
 export { fromEventListener } from './misc/from-event-listener';
+export { fromBroadcastChannel } from './misc/from-broadcast-channel';
