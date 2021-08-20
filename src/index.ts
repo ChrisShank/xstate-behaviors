@@ -12,6 +12,8 @@ export { fromWebSocket } from './real-time/from-web-socket';
 export { fromWebRTC } from './real-time/from-webrtc';
 export { fromEventSource } from './real-time/from-event-source';
 
+// Channels
+export { fromBroadcastChannel } from './channels/from-broadcast-channel';
+
 // Misc
 export { fromEventListener } from './misc/from-event-listener';
-export { fromBroadcastChannel } from './misc/from-broadcast-channel';
