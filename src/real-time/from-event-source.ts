@@ -1,11 +1,11 @@
-import { AnyEventObject, EventObject, InvokeCallback } from 'xstate';
+import { AnyEventObject, EventObject, InvokeCreator } from 'xstate';
 import { getEventType } from 'xstate/lib/utils';
 
-export function fromEventSource<TEvent extends EventObject = AnyEventObject>(
-  createEventSource: () => EventSource
-): () => InvokeCallback<TEvent> {
-  return () => (sendBack) => {
-    const eventSource = createEventSource();
+export function fromEventSource<TContext, TEvent extends EventObject = AnyEventObject>(
+  createEventSource: (context: TContext, event: TEvent) => EventSource
+): InvokeCreator<TContext, TEvent> {
+  return (context, event) => (sendBack) => {
+    const eventSource = createEventSource(context, event);
 
     eventSource.addEventListener('message', (event: MessageEvent<TEvent>) => {
       try {
@@ -15,9 +15,10 @@ export function fromEventSource<TEvent extends EventObject = AnyEventObject>(
       } catch {}
     });
 
-    eventSource.addEventListener('error', (event) => {
-      sendBack({ type: 'error', data: event });
-    });
+    // TODO
+    // eventSource.addEventListener('error', (event) => {
+    //   sendBack({ type: 'error', data: event });
+    // });
 
     return () => {
       eventSource.close();

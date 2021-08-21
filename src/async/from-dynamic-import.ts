@@ -2,21 +2,36 @@ import {
   interpret,
   AnyInterpreter,
   StateMachine,
-  InvokeCallback,
   InterpreterFrom,
-  EventObject,
   AnyEventObject,
+  EventObject,
+  StateSchema,
+  InvokeCreator,
 } from 'xstate';
 
-export function fromDynamicImport<Machine extends StateMachine<any, any, any>>(
-  loadMachine: () => Promise<Machine>
-): () => InvokeCallback {
-  return () => (sendBack, receive) => {
+/**
+ * Create an invoked machine that is dynamically imported.
+ * @param loadMachine Dynamically import a machine
+ * @returns an invoke creator
+ */
+export function fromDynamicImport<
+  TContext,
+  TEvent extends EventObject = AnyEventObject,
+  Machine extends StateMachine<any, any, any, any> = StateMachine<
+    TContext,
+    StateSchema<any>,
+    TEvent,
+    any
+  >
+>(
+  loadMachine: (context: TContext, event: TEvent) => Promise<Machine>
+): InvokeCreator<TContext, TEvent> {
+  return (context, event) => (sendBack, receive) => {
     let service: InterpreterFrom<Machine> | null = null;
     let status: 'pending' | 'resolved' | 'rejected' | 'stopped' = 'pending';
     const pendingMessages: AnyEventObject[] = [];
 
-    loadMachine()
+    loadMachine(context, event)
       .then((machine) => {
         if (status === 'stopped') return;
 

@@ -1,9 +1,10 @@
-import { AnyEventObject, EventObject, InvokeCallback } from 'xstate';
+import { AnyEventObject, EventObject, InvokeCreator } from 'xstate';
 import { getEventType } from 'xstate/lib/utils';
 
 export function fromServiceWorker<
+  TContext,
   TEvent extends EventObject = AnyEventObject
->(): () => InvokeCallback<TEvent> {
+>(): InvokeCreator<TContext, TEvent> {
   return () => (sendBack, receive) => {
     const handler = (event: MessageEvent<TEvent>) => {
       try {

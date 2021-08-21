@@ -1,11 +1,11 @@
-import { EventObject, AnyEventObject, InvokeCallback } from 'xstate';
+import { EventObject, AnyEventObject, InvokeCreator } from 'xstate';
 import { getEventType } from 'xstate/lib/utils';
 
-export function fromAudioWorklet<TEvent extends EventObject = AnyEventObject>(
-  createAudioWorkletNode: () => AudioWorkletNode
-): () => InvokeCallback<TEvent> {
-  return () => (sendBack, receive) => {
-    const node = createAudioWorkletNode();
+export function fromAudioWorklet<TContext, TEvent extends EventObject = AnyEventObject>(
+  createAudioWorkletNode: (context: TContext, event: TEvent) => AudioWorkletNode
+): InvokeCreator<TContext, TEvent> {
+  return (context, event) => (sendBack, receive) => {
+    const node = createAudioWorkletNode(context, event);
 
     const handler = (event: MessageEvent<TEvent>) => {
       try {

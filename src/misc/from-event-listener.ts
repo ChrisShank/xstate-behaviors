@@ -1,13 +1,12 @@
-import { AnyEventObject, EventObject, InvokeCallback } from 'xstate';
+import { InvokeCallback } from 'xstate';
 
-export function fromEventListener<
-  E extends keyof WindowEventMap,
-  TEvent extends EventObject = AnyEventObject
->(eventName: E): () => InvokeCallback<TEvent> {
+export function fromEventListener<E extends keyof WindowEventMap>(
+  eventName: E
+): () => InvokeCallback<WindowEventMap[E]> {
   return () => (sendBack) => {
-    addEventListener(eventName, sendBack);
+    addEventListener(eventName, (e) => sendBack(e));
     return () => {
-      removeEventListener(eventName, sendBack);
+      removeEventListener(eventName, (e) => sendBack(e));
     };
   };
 }

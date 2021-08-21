@@ -5,18 +5,18 @@ import {
   EventObject,
   interpret,
   InterpreterOptions,
-  InvokeCallback,
+  InvokeCreator,
   StateMachine,
   StateSchema,
   Typestate,
 } from 'xstate';
 import { getEventType } from 'xstate/lib/utils';
 
-export function fromSharedWorker<TEvent extends EventObject = AnyEventObject>(
-  createWorker: () => SharedWorker
-): () => InvokeCallback<TEvent> {
-  return () => (sendBack, receive) => {
-    const worker = createWorker();
+export function fromSharedWorker<TContext, TEvent extends EventObject = AnyEventObject>(
+  createWorker: (context: TContext, event: TEvent) => SharedWorker
+): InvokeCreator<TContext, TEvent> {
+  return (context, event) => (sendBack, receive) => {
+    const worker = createWorker(context, event);
 
     worker.port.start();
 
@@ -50,7 +50,8 @@ export function interpretInSharedWorker<
   machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
-  const _self = self as WorkerGlobalScope;
+  // TODO type as WorkerGlobalScope
+  const _self = self as any;
 
   const service = interpret(machine, {
     ...options,

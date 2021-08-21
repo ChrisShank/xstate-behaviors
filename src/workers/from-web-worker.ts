@@ -5,18 +5,18 @@ import {
   EventObject,
   interpret,
   InterpreterOptions,
-  InvokeCallback,
+  InvokeCreator,
   StateMachine,
   StateSchema,
   Typestate,
 } from 'xstate';
 import { getEventType } from 'xstate/lib/utils';
 
-export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
-  createWorker: () => Worker
-): () => InvokeCallback<TEvent> {
-  return () => (sendBack, receive) => {
-    const worker = createWorker();
+export function fromWebWorker<TContext, TEvent extends EventObject = AnyEventObject>(
+  createWorker: (context: TContext, event: TEvent) => Worker
+): InvokeCreator<TContext, TEvent> {
+  return (context, event) => (sendBack, receive) => {
+    const worker = createWorker(context, event);
     const handler = (event: MessageEvent<TEvent>) => {
       try {
         // Will error out if the data is not a valid event
@@ -46,7 +46,8 @@ export function interpretInWebWorker<
   machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
-  const _self = self as WorkerGlobalScope & typeof globalThis;
+  // TODO type as WorkerGlobalScope
+  const _self = self as any;
 
   const service = interpret(machine, {
     ...options,
