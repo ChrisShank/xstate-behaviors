@@ -1,4 +1,4 @@
-import { Event, EventObject, AnyEventObject, InvokeCreator } from 'xstate';
+import { Event, EventObject, AnyEventObject, InvokeCreator, Subscription } from 'xstate';
 
 type Listener<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 
@@ -12,10 +12,14 @@ export class EventBus<TEvent extends EventObject = AnyEventObject> {
     return this.state === 'stopped';
   }
 
-  subscribe(listener: Listener<TEvent>) {
-    if (this.isStopped) return;
+  subscribe(listener: Listener<TEvent>): Subscription {
+    if (this.isStopped) return { unsubscribe: () => {} };
 
     this.listeners.add(listener);
+
+    return {
+      unsubscribe: () => this.listeners.delete(listener),
+    };
   }
 
   send(event: Event<TEvent>, listenerToIgnore?: Listener<TEvent>) {
@@ -49,14 +53,14 @@ export function fromEventBus<TContext, TEvent extends EventObject = AnyEventObje
       sendBack(event);
     };
 
-    bus.subscribe(listener);
+    const subscription = bus.subscribe(listener);
 
     receive((event) => {
       bus.send(event, listener);
     });
 
     return () => {
-      bus.stop();
+      subscription.unsubscribe();
     };
   };
 }
