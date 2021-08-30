@@ -17,8 +17,8 @@ export function fromAudioWorklet<TContext, TEvent extends EventObject = AnyEvent
 
     node.port.addEventListener('message', handler);
 
-    receive((event) => {
-      node.port.postMessage(event);
+    receive(({ _transfer, ...event }) => {
+      node.port.postMessage(event, { transfer: _transfer });
     });
 
     return () => {

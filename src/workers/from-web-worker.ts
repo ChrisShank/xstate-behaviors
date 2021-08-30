@@ -26,8 +26,8 @@ export function fromWebWorker<TContext, TEvent extends EventObject = AnyEventObj
     };
     worker.addEventListener('message', handler);
 
-    receive((event) => {
-      worker.postMessage(event);
+    receive(({ _transfer, ...event }) => {
+      worker.postMessage(event, _transfer);
     });
 
     return () => {
@@ -53,8 +53,8 @@ export function interpretInWebWorker<
     ...options,
     deferEvents: true,
     parent: {
-      send: (event) => {
-        _self.postMessage(event);
+      send: ({ _transfer, ...event }) => {
+        _self.postMessage(event, _transfer);
       },
     } as AnyInterpreter, // should probably be a different type
   });

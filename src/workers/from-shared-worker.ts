@@ -30,8 +30,8 @@ export function fromSharedWorker<TContext, TEvent extends EventObject = AnyEvent
 
     worker.port.addEventListener('message', handler);
 
-    receive((event) => {
-      worker.port.postMessage(event);
+    receive(({ _transfer, ...event }) => {
+      worker.port.postMessage(event, _transfer);
     });
 
     return () => {
@@ -57,8 +57,8 @@ export function interpretInSharedWorker<
     ...options,
     deferEvents: true,
     parent: {
-      send: (event) => {
-        _self.postMessage(event);
+      send: ({ _transfer, ...event }) => {
+        _self.postMessage(event, _transfer);
       },
     } as AnyInterpreter, // should probably be a different type
   });
