@@ -10,8 +10,9 @@ export function fromWebSocket<TContext, TEvent extends EventObject = AnyEventObj
     socket.addEventListener('message', (event: MessageEvent<TEvent>) => {
       try {
         // Will error out if the data is not a valid event
-        getEventType(event.data);
-        sendBack(event.data);
+        const data = JSON.parse(event.data);
+        getEventType(data);
+        sendBack(data);
       } catch {}
     });
 
