@@ -1,5 +1,5 @@
 import { createMachine, interpret, send } from 'xstate';
-import { fromWebSocket } from '../../src';
+import { fromWebSocket } from '@src';
 
 const pingMachine = createMachine({
   id: 'ping',

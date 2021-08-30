@@ -1,6 +1,6 @@
 import { createMachine, interpret, send } from 'xstate';
 import { log } from 'xstate/lib/actions';
-import { fromBroadcastChannel } from '../../src';
+import { fromBroadcastChannel } from '@src';
 
 const BROADCAST_CHANNEL_NAME = 'BC';
 
