@@ -16,26 +16,10 @@ type DynamicImportEvents<Machine extends StateMachine<any, any, any, any>> =
   | { type: 'reject'; error: any };
 
 type DynamicImportState<Machine extends StateMachine<any, any, any, any>> =
-  | {
-      status: 'pending';
-      state: undefined;
-      error: undefined;
-    }
-  | {
-      status: 'fulfilled';
-      state: InterpreterFrom<Machine>['state'];
-      error: undefined;
-    }
-  | {
-      status: 'rejected';
-      state: undefined;
-      error: any;
-    }
-  | {
-      status: 'stopped';
-      state: undefined;
-      error: undefined;
-    };
+  | undefined
+  | ({ status?: undefined } & InterpreterFrom<Machine>['state'])
+  | { status: 'rejected'; error: any }
+  | { status: 'stopped' };
 
 export function fromDynamicImport<
   TContext,
@@ -49,11 +33,7 @@ export function fromDynamicImport<
 >(
   loadMachine: () => Promise<Machine>
 ): Behavior<DynamicImportEvents<Machine>, DynamicImportState<Machine>> {
-  const initialState: DynamicImportState<Machine> = {
-    status: 'pending',
-    state: undefined,
-    error: undefined,
-  };
+  const initialState: DynamicImportState<Machine> = undefined;
 
   const pendingMessages: TEvent[] = [];
   let service: InterpreterFrom<Machine> | null = null;
@@ -74,7 +54,7 @@ export function fromDynamicImport<
     transition(state, event, { self, parent, id, observers }) {
       switch (event.type) {
         case 'fulfill': {
-          if (state.status === 'stopped') break;
+          if (state && state.status === 'stopped') break;
 
           service = interpret(event.machine, {
             parent: parent as AnyInterpreter,
@@ -86,11 +66,7 @@ export function fromDynamicImport<
 
           service.send(pendingMessages);
 
-          return {
-            status: 'fulfilled',
-            state: service.state,
-            error: undefined,
-          };
+          return service.state as InterpreterFrom<Machine>['state'];
         }
         case 'reject': {
           parent?.send(error(id, event.error));
@@ -99,24 +75,19 @@ export function fromDynamicImport<
           });
           return {
             status: 'rejected',
-            state: undefined,
             error: event.error,
           };
         }
         case 'update': {
           observers.forEach((observer) => {
-            observer.error(event.state);
+            observer.next(event.state);
           });
-          return {
-            status: 'fulfilled',
-            state: event.state,
-            error: undefined,
-          };
+          return event.state;
         }
         default: {
-          if (state.status === 'pending') {
+          if (state === undefined) {
             pendingMessages.push(event);
-          } else if (state.status === 'fulfilled') {
+          } else if (state.status !== 'rejected' && state.status !== 'stopped') {
             service?.send(event);
           }
         }
@@ -127,11 +98,7 @@ export function fromDynamicImport<
     stop() {
       service?.stop();
 
-      return {
-        status: 'stopped',
-        state: undefined,
-        error: undefined,
-      };
+      return { status: 'stopped' };
     },
   };
 }

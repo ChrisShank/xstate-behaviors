@@ -18,35 +18,15 @@ type WebWorkerEvents<TEvent extends EventObject> =
   | { type: 'message'; message: TEvent };
 
 type WebWorkerState<TEvent extends EventObject = AnyEventObject> =
-  | {
-      status: 'idle';
-      message: undefined;
-      error: undefined;
-    }
-  | {
-      status: 'active';
-      message: TEvent;
-      error: undefined;
-    }
-  | {
-      status: 'error';
-      message: undefined;
-      error: ErrorEvent | Event;
-    }
-  | {
-      status: 'terminated';
-      message: undefined;
-      error: undefined;
-    };
+  | { status: 'idle' }
+  | { status: 'active'; message: TEvent }
+  | { status: 'error'; error: ErrorEvent | Event }
+  | { status: 'terminated' };
 
 export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
   createWorker: () => Worker
 ): Behavior<WebWorkerEvents<TEvent>, WebWorkerState<TEvent>> {
-  const initialState: WebWorkerState<TEvent> = {
-    status: 'idle',
-    message: undefined,
-    error: undefined,
-  };
+  const initialState: WebWorkerState<TEvent> = { status: 'idle' };
 
   let worker: Worker | undefined;
   let onMessage: (event: MessageEvent<TEvent>) => void;
@@ -83,19 +63,11 @@ export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
     transition(state, event, { parent, id }) {
       switch (event.type) {
         case 'message': {
-          return {
-            status: 'active',
-            message: event.message,
-            error: undefined,
-          };
+          return { status: 'active', message: event.message };
         }
         case 'error': {
           parent?.send(error(id, event));
-          return {
-            status: 'error',
-            message: undefined,
-            error: event.error,
-          };
+          return { status: 'error', error: event.error };
         }
         default: {
           const { _transfer, ..._event } = event as any;
@@ -109,6 +81,8 @@ export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
       worker?.removeEventListener('messageerror', onMessageError);
       worker?.removeEventListener('error', onError);
       worker?.terminate();
+
+      return { status: 'terminated' };
     },
   };
 }

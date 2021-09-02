@@ -5,43 +5,18 @@ import { getEventType } from 'xstate/lib/utils';
 type EventSourceEvents<T extends EventObject> =
   | { type: 'connected' }
   | { type: 'message'; data: T }
-  | ({ type: 'close' } & Pick<CloseEvent, 'code' | 'reason' | 'wasClean'>)
-  | { type: 'error'; error: unknown };
+  | { type: 'error'; error: any };
 
 type EventSourceState<T extends EventObject> =
-  | {
-      status: 'connecting';
-      message: undefined;
-      error: undefined;
-      close: undefined;
-    }
-  | {
-      status: 'open';
-      message: T | undefined;
-      error: undefined;
-      close: undefined;
-    }
-  | {
-      status: 'error';
-      message: undefined;
-      error: any;
-      close: undefined;
-    }
-  | {
-      status: 'closed';
-      message: undefined;
-      error: undefined;
-    };
+  | { status: 'connecting' }
+  | { status: 'open'; message?: T | undefined }
+  | { status: 'error'; error: any }
+  | { status: 'closed' };
 
 export function fromEventSource<TEvent extends EventObject>(
   createEventSource: () => EventSource
 ): Behavior<EventSourceEvents<TEvent>, EventSourceState<TEvent>> {
-  const initialState: EventSourceState<TEvent> = {
-    status: 'connecting',
-    message: undefined,
-    error: undefined,
-    close: undefined,
-  };
+  const initialState: EventSourceState<TEvent> = { status: 'connecting' };
 
   let eventSource: EventSource | undefined;
   let onOpen: () => void;
@@ -73,28 +48,13 @@ export function fromEventSource<TEvent extends EventObject>(
       switch (event.type) {
         case 'connected':
           parent?.send('connected');
-          return {
-            status: 'open',
-            message: undefined,
-            error: undefined,
-            close: undefined,
-          };
+          return { status: 'open' };
         case 'message':
           parent?.send(event.data);
-          return {
-            status: 'open',
-            message: event.data,
-            error: undefined,
-            close: undefined,
-          };
+          return { status: 'open', message: event.data };
         case 'error':
           parent?.send(error(id, event.error));
-          return {
-            status: 'error',
-            message: undefined,
-            error: event.error,
-            close: undefined,
-          };
+          return { status: 'error', error: event.error };
         default:
           return state;
       }
@@ -106,11 +66,7 @@ export function fromEventSource<TEvent extends EventObject>(
 
       eventSource?.close();
 
-      return {
-        status: 'closed',
-        message: undefined,
-        error: undefined,
-      };
+      return { status: 'closed' };
     },
   };
 }

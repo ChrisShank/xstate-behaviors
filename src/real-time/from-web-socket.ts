@@ -2,48 +2,25 @@ import { Behavior, EventObject } from 'xstate';
 import { doneInvoke, error } from 'xstate/lib/actions';
 import { getEventType } from 'xstate/lib/utils';
 
+type CloseError = { code: number; reason?: string; wasClean?: boolean };
+
 type WebSocketEvents<T extends EventObject> =
   | { type: 'connected' }
   | { type: 'message'; data: T }
-  | ({ type: 'close' } & Pick<CloseEvent, 'code' | 'reason' | 'wasClean'>)
-  | { type: 'error'; error: unknown };
+  | ({ type: 'close' } & CloseError)
+  | { type: 'error'; error: any };
 
 type WebSocketState<T extends EventObject> =
-  | {
-      status: 'connecting';
-      message: undefined;
-      error: undefined;
-      close: undefined;
-    }
-  | {
-      status: 'open';
-      message: T | undefined;
-      error: undefined;
-      close: undefined;
-    }
-  | {
-      status: 'error';
-      message: undefined;
-      error: any;
-      close: undefined;
-    }
-  | {
-      status: 'closed';
-      message: undefined;
-      error: undefined;
-      close: Pick<CloseEvent, 'code' | 'reason' | 'wasClean'>;
-    };
+  | { status: 'connecting' }
+  | { status: 'open'; message?: T | undefined }
+  | { status: 'error'; error: any }
+  | { status: 'closed'; close: CloseError };
 
 export function fromWebSocket<TEvent extends EventObject>(
   createSocket: () => WebSocket
 ): Behavior<WebSocketEvents<TEvent>, WebSocketState<TEvent>> {
-  const initialState: WebSocketState<TEvent> = {
-    status: 'connecting',
-    message: undefined,
-    error: undefined,
-    close: undefined,
-  };
-
+  const initialState: WebSocketState<TEvent> = { status: 'connecting' };
+  const pendingEvents: TEvent[] = [];
   let socket: WebSocket | undefined;
   let onOpen: () => void;
   let onMessage: (event: MessageEvent<string>) => void;
@@ -80,42 +57,31 @@ export function fromWebSocket<TEvent extends EventObject>(
     },
     transition(state, event, { parent, id }) {
       switch (event.type) {
-        case 'connected':
-          parent?.send('connected');
-          return {
-            status: 'open',
-            message: undefined,
-            error: undefined,
-            close: undefined,
-          };
-        case 'message':
+        case 'connected': {
+          socket?.send(JSON.stringify(pendingEvents));
+          return { status: 'open' };
+        }
+        case 'message': {
           parent?.send(event.data);
-          return {
-            status: 'open',
-            message: event.data,
-            error: undefined,
-            close: undefined,
-          };
-        case 'error':
+          return { status: 'open', message: event.data };
+        }
+        case 'error': {
           parent?.send(error(id, event.error));
-          return {
-            status: 'error',
-            message: undefined,
-            error: event.error,
-            close: undefined,
-          };
-        case 'close':
+          return { status: 'error', error: event.error };
+        }
+        case 'close': {
           parent?.send(doneInvoke(id, event));
           const { code, reason, wasClean } = event;
-          return {
-            status: 'closed',
-            message: undefined,
-            error: undefined,
-            close: { code, reason, wasClean },
-          };
-        default:
-          socket?.send(JSON.stringify(event));
+          return { status: 'closed', close: { code, reason, wasClean } };
+        }
+        default: {
+          if (state.status === 'connecting') {
+            pendingEvents.push(event);
+          } else if (state.status === 'open') {
+            socket?.send(JSON.stringify(event));
+          }
           return state;
+        }
       }
     },
     stop() {
@@ -123,16 +89,11 @@ export function fromWebSocket<TEvent extends EventObject>(
       socket?.removeEventListener('message', onMessage);
       socket?.removeEventListener('error', onError);
       socket?.removeEventListener('close', onClose);
+      socket?.close(1001);
 
       return {
         status: 'closed',
-        message: undefined,
-        error: undefined,
-        close: {
-          code: 1000,
-          reason: 'Normal closure',
-          wasClean: true,
-        },
+        close: { code: 1001 },
       };
     },
   };
