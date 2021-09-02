@@ -1,19 +1,20 @@
 import { createMachine, interpret, send } from 'xstate';
+import { log } from 'xstate/lib/actions';
 import { fromDynamicImport } from '@src';
 
-const pingMachine = createMachine({
-  id: 'ping',
+const pongMachine = createMachine({
+  id: 'pong',
   invoke: {
-    id: 'pong',
-    src: () => fromDynamicImport(async () => (await import('./pong.machine')).pongMachine),
+    id: 'ping',
+    src: () => fromDynamicImport(async () => (await import('./ping.machine')).pingMachine),
   },
-  entry: send({ type: 'PING' }, { to: 'pong' }),
+  entry: send({ type: 'PING' }, { to: 'ping' }),
   initial: 'active',
   states: {
     active: {
       on: {
         PONG: {
-          actions: [send({ type: 'PING' }, { to: 'pong', delay: 1000 }), () => console.log('PONG')],
+          actions: [log('PONG'), send({ type: 'PING' }, { to: 'ping', delay: 1000 })],
         },
         STOP: 'complete',
       },
@@ -22,4 +23,4 @@ const pingMachine = createMachine({
   },
 });
 
-(window as any).service = interpret(pingMachine).start();
+const service = interpret(pongMachine).start();
