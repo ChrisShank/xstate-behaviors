@@ -9,17 +9,10 @@ const pongMachine = createMachine({
     src: () => fromDynamicImport(async () => (await import('./ping.machine')).pingMachine),
   },
   entry: send({ type: 'PING' }, { to: 'ping' }),
-  initial: 'active',
-  states: {
-    active: {
-      on: {
-        PONG: {
-          actions: [log('PONG'), send({ type: 'PING' }, { to: 'ping', delay: 1000 })],
-        },
-        STOP: 'complete',
-      },
+  on: {
+    PONG: {
+      actions: [log('PONG'), send({ type: 'PING' }, { to: 'ping', delay: 1000 })],
     },
-    complete: {},
   },
 });
 

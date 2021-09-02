@@ -3,25 +3,19 @@ import { fromWebWorker } from '@src';
 
 const { log } = actions;
 
-const pingMachine = createMachine({
-  id: 'ping',
+const pongMachine = createMachine({
+  id: 'pong',
   invoke: {
-    id: 'pong',
-    src: fromWebWorker(() => new Worker(new URL('./worker', import.meta.url), { type: 'module' })),
+    id: 'ping',
+    src: () =>
+      fromWebWorker(() => new Worker(new URL('./worker', import.meta.url), { type: 'module' })),
   },
-  entry: send({ type: 'PING' }, { to: 'pong' }),
-  initial: 'active',
-  states: {
-    active: {
-      on: {
-        PONG: {
-          actions: [log('PONG'), send({ type: 'PING' }, { to: 'pong', delay: 1000 })],
-        },
-        STOP: 'complete',
-      },
+  entry: send({ type: 'PING' }, { to: 'ping' }),
+  on: {
+    PONG: {
+      actions: [log('PONG'), send({ type: 'PING' }, { to: 'ping', delay: 1000 })],
     },
-    complete: {},
   },
 });
 
-const service = interpret(pingMachine).start();
+const service = interpret(pongMachine).start();

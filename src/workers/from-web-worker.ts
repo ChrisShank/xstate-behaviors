@@ -63,6 +63,7 @@ export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
     transition(state, event, { parent, id }) {
       switch (event.type) {
         case 'message': {
+          parent?.send(event.message);
           return { status: 'active', message: event.message };
         }
         case 'error': {

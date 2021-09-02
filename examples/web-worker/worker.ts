@@ -3,8 +3,8 @@ import { interpretInWebWorker } from '@src';
 
 const { log } = actions;
 
-const pongMachine = createMachine({
-  id: 'pong',
+const pingMachine = createMachine({
+  id: 'ping',
   on: {
     PING: {
       actions: [log('PING'), sendParent('PONG', { delay: 1000 })],
@@ -12,5 +12,5 @@ const pongMachine = createMachine({
   },
 });
 
-const service = interpretInWebWorker(pongMachine);
+const service = interpretInWebWorker(pingMachine);
 service.start();
