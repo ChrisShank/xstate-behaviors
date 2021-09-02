@@ -3,33 +3,25 @@ import {
   AnyInterpreter,
   StateMachine,
   InterpreterFrom,
-  AnyEventObject,
-  EventObject,
-  StateSchema,
   Behavior,
+  EventObject,
 } from 'xstate';
 import { error } from 'xstate/lib/actions';
 
-type DynamicImportEvents<Machine extends StateMachine<any, any, any, any>> =
+export type DynamicImportEvents<Machine extends StateMachine<any, any, any, any>> =
   | { type: 'fulfill'; machine: Machine }
   | { type: 'update'; state: InterpreterFrom<Machine>['state'] }
   | { type: 'reject'; error: any };
 
-type DynamicImportState<Machine extends StateMachine<any, any, any, any>> =
+export type DynamicImportState<Machine extends StateMachine<any, any, any, any>> =
   | undefined
   | ({ status?: undefined } & InterpreterFrom<Machine>['state'])
   | { status: 'rejected'; error: any }
   | { status: 'stopped' };
 
 export function fromDynamicImport<
-  TContext,
-  TEvent extends EventObject = AnyEventObject,
-  Machine extends StateMachine<any, any, any, any> = StateMachine<
-    TContext,
-    StateSchema<any>,
-    TEvent,
-    any
-  >
+  Machine extends StateMachine<any, any, any, any>,
+  TEvent extends EventObject = Machine extends StateMachine<any, any, infer E, any> ? E : never
 >(
   loadMachine: () => Promise<Machine>
 ): Behavior<DynamicImportEvents<Machine>, DynamicImportState<Machine>> {
@@ -58,7 +50,7 @@ export function fromDynamicImport<
 
           service = interpret(event.machine, {
             parent: parent as AnyInterpreter,
-          }) as InterpreterFrom<Machine>;
+          }).start() as InterpreterFrom<Machine>;
 
           service.subscribe((state) => {
             self.send({ type: 'update', state });
