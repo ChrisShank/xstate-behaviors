@@ -1,6 +1,6 @@
 import { createMachine, interpret, send } from 'xstate';
 import { log } from 'xstate/lib/actions';
-import { EventBus, fromEventBus } from '../../src';
+import { EventBus, fromEventBus } from '@src';
 
 type Context = {
   eventBus: EventBus;

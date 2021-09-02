@@ -1,5 +1,5 @@
 import { createMachine, sendParent, actions } from 'xstate';
-import { interpretInWebWorker } from '../../src/workers/from-web-worker';
+import { interpretInWebWorker } from '@src';
 
 const { log } = actions;
 

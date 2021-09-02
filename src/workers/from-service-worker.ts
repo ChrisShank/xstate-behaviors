@@ -15,8 +15,8 @@ export function fromServiceWorker<
     };
     navigator.serviceWorker.addEventListener('message', handler);
 
-    receive((event) => {
-      navigator.serviceWorker.controller?.postMessage(event);
+    receive(({ _transfer, ...event }) => {
+      navigator.serviceWorker.controller?.postMessage(event, _transfer);
     });
 
     return () => {

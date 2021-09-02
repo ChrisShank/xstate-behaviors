@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ESNext",
     "module": "ESNext",
     "lib": ["ESNext", "DOM"],
@@ -11,7 +12,10 @@
     "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true
+    "noImplicitReturns": true,
+    "paths": {
+      "@src": ["./src"]
+    }
   },
-  "include": ["./src", "./examples", "vite-env.d.ts"]
+  "include": ["src", "examples", "vite-env.d.ts"]
 }
