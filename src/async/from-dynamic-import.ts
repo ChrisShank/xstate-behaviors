@@ -27,7 +27,7 @@ export function fromDynamicImport<
 ): Behavior<DynamicImportEvents<Machine>, DynamicImportState<Machine>> {
   const initialState: DynamicImportState<Machine> = undefined;
 
-  const pendingMessages: TEvent[] = [];
+  let pendingMessages: TEvent[] = [];
   let service: InterpreterFrom<Machine> | null = null;
 
   return {
@@ -57,6 +57,7 @@ export function fromDynamicImport<
           });
 
           service.send(pendingMessages);
+          pendingMessages = [];
 
           return service.state as InterpreterFrom<Machine>['state'];
         }
