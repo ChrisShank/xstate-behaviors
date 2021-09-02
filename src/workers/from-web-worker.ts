@@ -1,39 +1,115 @@
 import {
   AnyEventObject,
   AnyInterpreter,
+  Behavior,
   DefaultContext,
   EventObject,
   interpret,
   InterpreterOptions,
-  InvokeCreator,
   StateMachine,
   StateSchema,
   Typestate,
 } from 'xstate';
+import { error } from 'xstate/lib/actions';
 import { getEventType } from 'xstate/lib/utils';
 
-export function fromWebWorker<TContext, TEvent extends EventObject = AnyEventObject>(
-  createWorker: (context: TContext, event: TEvent) => Worker
-): InvokeCreator<TContext, TEvent> {
-  return (context, event) => (sendBack, receive) => {
-    const worker = createWorker(context, event);
-    const handler = (event: MessageEvent<TEvent>) => {
-      try {
-        // Will error out if the data is not a valid event
-        getEventType(event.data);
-        sendBack(event.data);
-      } catch {}
-    };
-    worker.addEventListener('message', handler);
+type WebWorkerEvents<TEvent extends EventObject> =
+  | { type: 'error'; error: ErrorEvent | Event }
+  | { type: 'message'; message: TEvent };
 
-    receive(({ _transfer, ...event }) => {
-      worker.postMessage(event, _transfer);
-    });
-
-    return () => {
-      worker.removeEventListener('message', handler);
-      worker.terminate();
+type WebWorkerState<TEvent extends EventObject = AnyEventObject> =
+  | {
+      status: 'idle';
+      message: undefined;
+      error: undefined;
+    }
+  | {
+      status: 'active';
+      message: TEvent;
+      error: undefined;
+    }
+  | {
+      status: 'error';
+      message: undefined;
+      error: ErrorEvent | Event;
+    }
+  | {
+      status: 'terminated';
+      message: undefined;
+      error: undefined;
     };
+
+export function fromWebWorker<TEvent extends EventObject = AnyEventObject>(
+  createWorker: () => Worker
+): Behavior<WebWorkerEvents<TEvent>, WebWorkerState<TEvent>> {
+  const initialState: WebWorkerState<TEvent> = {
+    status: 'idle',
+    message: undefined,
+    error: undefined,
+  };
+
+  let worker: Worker | undefined;
+  let onMessage: (event: MessageEvent<TEvent>) => void;
+  let onMessageError: (event: Event) => void;
+  let onError: (event: ErrorEvent) => void;
+
+  return {
+    initialState,
+    start({ self }) {
+      worker = createWorker();
+
+      onMessage = (event: MessageEvent<TEvent>) => {
+        try {
+          // Will error out if the data is not a valid event
+          getEventType(event.data);
+          self.send({ type: 'message', message: event.data });
+        } catch {}
+      };
+
+      worker.addEventListener('message', onMessage);
+
+      onMessageError = (event) => {
+        self.send({ type: 'error', error: event });
+      };
+      worker.addEventListener('message error', onMessageError);
+
+      onError = (event) => {
+        self.send({ type: 'error', error: event });
+      };
+      worker.addEventListener('error', onError);
+
+      return initialState;
+    },
+    transition(state, event, { parent, id }) {
+      switch (event.type) {
+        case 'message': {
+          return {
+            status: 'active',
+            message: event.message,
+            error: undefined,
+          };
+        }
+        case 'error': {
+          parent?.send(error(id, event));
+          return {
+            status: 'error',
+            message: undefined,
+            error: event.error,
+          };
+        }
+        default: {
+          const { _transfer, ..._event } = event as any;
+          worker?.postMessage(_event, _transfer);
+          return state;
+        }
+      }
+    },
+    stop() {
+      worker?.removeEventListener('message', onMessage);
+      worker?.removeEventListener('messageerror', onMessageError);
+      worker?.removeEventListener('error', onError);
+      worker?.terminate();
+    },
   };
 }
 
