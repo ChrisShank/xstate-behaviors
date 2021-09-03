@@ -2,6 +2,9 @@ import { ActorRef, Behavior, EventObject, Subscription } from 'xstate';
 
 type ActorRefEvents<TEmitted> = { type: 'update'; state: TEmitted };
 
+// What does it mean to subscribe to an actor?
+// If the actor is a machine then why would you subscribe to its state?
+// Other actors might makes sense to subscribe to though!
 export function fromActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>
 ): Behavior<TEvent | ActorRefEvents<TEmitted>, TEmitted> {
