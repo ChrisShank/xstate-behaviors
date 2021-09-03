@@ -6,8 +6,8 @@ type Context = {
   eventBus: EventBus;
 };
 
-const pingMachine = createMachine<Context>({
-  id: 'ping',
+const pongMachine = createMachine<Context>({
+  id: 'pong',
   invoke: {
     id: 'event bus',
     src: fromEventBus((context) => context.eventBus),
@@ -19,8 +19,8 @@ const pingMachine = createMachine<Context>({
   },
 });
 
-const pongMachine = createMachine<Context>({
-  id: 'pong',
+const pingMachine = createMachine<Context>({
+  id: 'ping',
   invoke: {
     id: 'event bus',
     src: fromEventBus((context) => context.eventBus),
@@ -41,7 +41,7 @@ const parentMachine = createMachine<Context>({
     { id: 'ping', src: pingMachine, data: (context) => context },
     { id: 'pong', src: pongMachine, data: (context) => context },
   ],
-  entry: send({ type: 'PING' }, { to: 'pong' }),
+  entry: send({ type: 'PING' }, { to: 'ping' }),
 });
 
 const service = interpret(parentMachine).start();

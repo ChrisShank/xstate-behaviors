@@ -13,6 +13,6 @@ export { fromWebRTC } from './real-time/from-webrtc';
 export { fromEventSource } from './real-time/from-event-source';
 
 // Event Bus
-export { EventBus, fromEventBus } from './event-bus/from-event-bus';
-export { fromBroadcastChannel } from './event-bus/from-broadcast-channel';
-export { fromEventListener } from './event-bus/from-event-listener';
+export { EventBus, fromEventBus } from './events/from-event-bus';
+export { fromBroadcastChannel } from './events/from-broadcast-channel';
+export { fromEventListener } from './events/from-event-listener';

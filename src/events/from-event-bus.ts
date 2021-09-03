@@ -1,4 +1,12 @@
-import { Event, EventObject, AnyEventObject, InvokeCreator, Subscription } from 'xstate';
+import {
+  Event,
+  EventObject,
+  AnyEventObject,
+  InvokeCreator,
+  Subscription,
+  InvokeCallback,
+  Behavior,
+} from 'xstate';
 
 type Listener<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 
@@ -38,29 +46,39 @@ export class EventBus<TEvent extends EventObject = AnyEventObject> {
   }
 }
 
-/**
- * Create an invoked service for a event bus.
- * @param createEventBus Create a EventBus
- * @returns an invoke creator
- */
-export function fromEventBus<TContext, TEvent extends EventObject = AnyEventObject>(
-  createEventBus: (context: TContext, event: TEvent) => EventBus<TEvent>
-): InvokeCreator<TContext, TEvent> {
-  return (context, event) => (sendBack, receive) => {
-    const bus = createEventBus(context, event);
+export function fromEventBus<TEvent extends EventObject = AnyEventObject>(
+  eventBus: EventBus<TEvent>
+): Behavior<TEvent, any> {
+  let listener: Listener<TEvent>;
 
-    const listener: Listener<TEvent> = (event) => {
-      sendBack(event);
-    };
-
-    const subscription = bus.subscribe(listener);
-
-    receive((event) => {
-      bus.send(event, listener);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+  return {
+    initialState: undefined,
+    start({ self }) {
+      listener = (event) => {
+        self.send(event);
+      };
+      eventBus;
+    },
+    transition(state, event) {
+      return undefined;
+    },
+    stop() {},
   };
+  // return (sendBack, receive) => {
+  //   const bus = createEventBus();
+
+  //   const listener: Listener<TEvent> = (event) => {
+  //     sendBack(event);
+  //   };
+
+  //   const subscription = bus.subscribe(listener);
+
+  //   receive((event) => {
+  //     bus.send(event, listener);
+  //   });
+
+  //   return () => {
+  //     subscription.unsubscribe();
+  //   };
+  // };
 }

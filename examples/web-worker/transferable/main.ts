@@ -13,7 +13,7 @@ const pongMachine = createMachine<Context>({
     buffer: new ArrayBuffer(8),
   },
   invoke: {
-    id: 'pong',
+    id: 'ping',
     src: () =>
       fromWebWorker(() => new Worker(new URL('./worker', import.meta.url), { type: 'module' })),
   },
