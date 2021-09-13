@@ -1,14 +1,12 @@
-import { createMachine, interpret, send, actions } from 'xstate';
-import { fromWebWorker } from '@src';
-
-const { log } = actions;
+import { createMachine, interpret, send } from 'xstate';
+import { log } from 'xstate/lib/actions';
+import { fromDynamicImport } from '@src';
 
 const pongMachine = createMachine({
   id: 'pong',
   invoke: {
     id: 'ping',
-    src: () =>
-      fromWebWorker(() => new Worker(new URL('./worker', import.meta.url), { type: 'module' })),
+    src: () => fromDynamicImport(async () => (await import('./ping.machine')).pingMachine),
   },
   entry: send({ type: 'PING' }, { to: 'ping' }),
   on: {

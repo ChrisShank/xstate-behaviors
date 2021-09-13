@@ -1,9 +1,8 @@
 import { createMachine, sendParent, actions } from 'xstate';
-import { interpretInWebWorker } from '@src';
 
 const { log } = actions;
 
-const pingMachine = createMachine({
+export const pingMachine = createMachine({
   id: 'ping',
   on: {
     PING: {
@@ -11,6 +10,3 @@ const pingMachine = createMachine({
     },
   },
 });
-
-const service = interpretInWebWorker(pingMachine);
-service.start();

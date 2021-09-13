@@ -3,57 +3,95 @@ import {
   AnyInterpreter,
   StateMachine,
   InterpreterFrom,
-  AnyEventObject,
+  Behavior,
   EventObject,
-  StateSchema,
-  InvokeCreator,
 } from 'xstate';
+import { error } from 'xstate/lib/actions';
 
-/**
- * Create an invoked machine that is dynamically imported.
- * @param loadMachine Dynamically import a machine
- * @returns an invoke creator
- */
+export type DynamicImportEvents<Machine extends StateMachine<any, any, any, any>> =
+  | { type: 'fulfill'; machine: Machine }
+  | { type: 'update'; state: InterpreterFrom<Machine>['state'] }
+  | { type: 'reject'; error: any };
+
+export type DynamicImportState<Machine extends StateMachine<any, any, any, any>> =
+  | undefined
+  | ({ status?: undefined } & InterpreterFrom<Machine>['state'])
+  | { status: 'rejected'; error: any }
+  | { status: 'stopped' };
+
 export function fromDynamicImport<
-  TContext,
-  TEvent extends EventObject = AnyEventObject,
-  Machine extends StateMachine<any, any, any, any> = StateMachine<
-    TContext,
-    StateSchema<any>,
-    TEvent,
-    any
-  >
+  Machine extends StateMachine<any, any, any, any>,
+  TEvent extends EventObject = Machine extends StateMachine<any, any, infer E, any> ? E : never
 >(
-  loadMachine: (context: TContext, event: TEvent) => Promise<Machine>
-): InvokeCreator<TContext, TEvent> {
-  return (context, event) => (sendBack, receive) => {
-    let service: InterpreterFrom<Machine> | null = null;
-    let status: 'pending' | 'resolved' | 'rejected' | 'stopped' = 'pending';
-    const pendingMessages: AnyEventObject[] = [];
+  loadMachine: () => Promise<Machine>
+): Behavior<DynamicImportEvents<Machine>, DynamicImportState<Machine>> {
+  const initialState: DynamicImportState<Machine> = undefined;
 
-    loadMachine(context, event)
-      .then((machine) => {
-        if (status === 'stopped') return;
+  let pendingMessages: TEvent[] = [];
+  let service: InterpreterFrom<Machine> | null = null;
 
-        status = 'resolved';
-        service = interpret(machine, {
-          parent: { send: sendBack } as AnyInterpreter,
-        }) as InterpreterFrom<Machine>;
-        service?.send(pendingMessages);
-      })
-      .catch(() => (status = 'rejected'));
+  return {
+    initialState,
+    start({ self }) {
+      loadMachine()
+        .then((machine) => {
+          self.send({ type: 'fulfill', machine });
+        })
+        .catch((error) => {
+          self.send({ type: 'reject', error });
+        });
 
-    receive((event) => {
-      if (status === 'pending') {
-        pendingMessages.push(event);
-      } else if (status === 'resolved' && service) {
-        service?.send(event);
+      return initialState;
+    },
+    transition(state, event, { self, parent, id, observers }) {
+      switch (event.type) {
+        case 'fulfill': {
+          if (state && state.status === 'stopped') break;
+
+          service = interpret(event.machine, {
+            parent: parent as AnyInterpreter,
+          }).start() as InterpreterFrom<Machine>;
+
+          service.subscribe((state) => {
+            self.send({ type: 'update', state });
+          });
+
+          service.send(pendingMessages);
+          pendingMessages = [];
+
+          return service.state as InterpreterFrom<Machine>['state'];
+        }
+        case 'reject': {
+          parent?.send(error(id, event.error));
+          observers.forEach((observer) => {
+            observer.error(event.error);
+          });
+          return {
+            status: 'rejected',
+            error: event.error,
+          };
+        }
+        case 'update': {
+          observers.forEach((observer) => {
+            observer.next(event.state);
+          });
+          return event.state;
+        }
+        default: {
+          if (state === undefined) {
+            pendingMessages.push(event);
+          } else if (state.status !== 'rejected' && state.status !== 'stopped') {
+            service?.send(event);
+          }
+        }
       }
-    });
 
-    return () => {
-      status = 'stopped';
+      return state;
+    },
+    stop() {
       service?.stop();
-    };
+
+      return { status: 'stopped' };
+    },
   };
 }
